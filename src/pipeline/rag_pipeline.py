@@ -8,7 +8,7 @@ from src.generation.llm import get_llm
 from src.generation.prompt_templates import RAG_PROMPT
 from src.ingestion.chunker import chunk_documents
 from src.ingestion.embeddings import get_embedding_model
-from src.ingestion.loader import load_documents_from_directory
+from src.ingestion.loader import load_document, load_documents_from_directory
 from src.retrieval.retriever import format_documents, retrieve_documents
 from src.retrieval.vector_store import add_documents, get_retriever, get_vector_store
 
@@ -29,17 +29,27 @@ class RAGPipeline:
             self._retriever = get_retriever(self.embeddings)
         return self._retriever
 
-    def ingest_directory(self, directory: str):
-        raw_docs = load_documents_from_directory(directory)
-        if not raw_docs:
-            print("No documents found to ingest.")
-            return
+    def _ingest_and_setup(self, raw_docs: List[Document]):
         chunks = chunk_documents(raw_docs)
         self._vector_store = add_documents(chunks, self.embeddings)
         self._retriever = self._vector_store.as_retriever(
             search_kwargs={"k": settings.top_k}
         )
         print(f"Ingested {len(chunks)} chunks from {len(raw_docs)} documents.")
+
+    def ingest_file(self, file_path: str):
+        raw_docs = load_document(file_path)
+        if not raw_docs:
+            print("No documents found to ingest.")
+            return
+        self._ingest_and_setup(raw_docs)
+
+    def ingest_directory(self, directory: str):
+        raw_docs = load_documents_from_directory(directory)
+        if not raw_docs:
+            print("No documents found to ingest.")
+            return
+        self._ingest_and_setup(raw_docs)
 
     def query(self, question: str) -> str:
         retriever = self._ensure_retriever()

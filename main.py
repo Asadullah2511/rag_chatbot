@@ -4,13 +4,25 @@ from pathlib import Path
 from rich import print
 from rich.panel import Panel
 
+from config import settings
 from src.pipeline.rag_pipeline import RAGPipeline
+
+PDF_PATH = Path(__file__).parent / "notebooks" / "dark_pyscology.pdf"
 
 
 def main():
     pipeline = RAGPipeline()
 
-    print(Panel.fit("[bold cyan]RAG Chatbot[/bold cyan]", border_style="cyan"))
+    print(Panel.fit("[bold cyan]RAG Chatbot - Dark Psychology Research[/bold cyan]", border_style="cyan"))
+
+    # Auto-ingest the research PDF if it hasn't been ingested yet
+    if not Path(settings.persist_directory).exists():
+        print("[yellow]First run detected — ingesting Dark Psychology PDF...[/yellow]")
+        if PDF_PATH.exists():
+            pipeline.ingest_file(str(PDF_PATH))
+        else:
+            print(f"[red]PDF not found at {PDF_PATH}[/red]")
+
     print("Commands: /ingest <dir> | /exit | type your question\n")
 
     while True:
